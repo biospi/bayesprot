@@ -58,18 +58,18 @@ model <- function(protein_id,design,exposures,use_exposure_sd,chain,nchain,seed,
   # level is not important (as it is always mean 0, var 1e-6)
     
   prior <- list(
-    B = list(mu = matrix(0,nRC+nS+nC-2,1),V = diag(nRC+nS+nC-2) * 1e+6),
-    G = list(G1 = list(V = diag(population.vars), nu = nO, alpha.mu = rep(0,nO),  alpha.V = diag(1000,nO)),
+    B = list(mu = matrix(0,nRC+nS+nA-2,1),V = diag(nRC+nS+nA-2) * 1e+6),
+    G = list(#G1 = list(V = diag(population.vars), nu = nO, alpha.mu = rep(0,nO),  alpha.V = diag(1000,nO)),
              #G2 = list(V = diag(nD), nu = nD, alpha.mu = rep(0,nD),  alpha.V = diag(1000,nD)),
-             G2 = list(V = diag(nP), nu = nP, alpha.mu = rep(0,nP),  alpha.V = diag(1000,nP))),
+             G1 = list(V = diag(nP), nu = nP, alpha.mu = rep(0,nP),  alpha.V = diag(1000,nP))),
     R = list(V = diag(nS), nu = 0.002)
   )
   prior$B$mu[(nS+1):(nS+nRC-1)] <- ee$mean[2:nRC]
   diag(prior$B$V)[(nS+1):(nS+nRC-1)] <- ee$var[2:nRC]              
   model <- suppressWarnings(MCMCglmm(
-    as.formula(paste0("Count ~ ", ifelse(nS==1, "", "Spectrum-1 + "), "RunChannel + Condition")),
+    as.formula(paste0("Count ~ ", ifelse(nS==1, "", "Spectrum-1 + "), "RunChannel + Sample")),
     #random = as.formula(paste0(ifelse(nO==1, "~ Sample ", "~idh(Population):Sample "), " + idh(Digest):Peptide", ifelse(nP==1, " + Digest", " + idh(Peptide):Digest"))),
-    random = as.formula(paste0(ifelse(nO==1, "~ Sample", "~idh(Population):Sample"), ifelse(nP==1, " + Digest", " + idh(Peptide):Digest"))),
+    random = as.formula(paste0(ifelse(nP==1, "~ Digest", "~ idh(Peptide):Digest"))),
     rcov = as.formula(ifelse(nS==1, "~ units", "~ idh(Spectrum):units")),
     family = 'poisson',        
     data=data, prior=prior, nitt=nitt, burnin=0, thin=thin, pr=T, singular.ok=T
