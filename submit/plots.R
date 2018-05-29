@@ -326,7 +326,7 @@ plots <- function(protein_id,design,nitt,nburnin,nchain,fc,tol,do_plots) {
   
   # save stats, and 1000 samps for study-wide plots
   if (nrow(s.Sol) > 1000) s.Sol <- s.Sol[seq(1,nrow(s.Sol),length=1000),]
-  s.Sol <- s.Sol[,colnames(s.Sol) %in% paste0('Condition', test_samples),drop=F]
+  s.Sol <- s.Sol[,colnames(s.Sol) %in% paste0('Sample', test_samples),drop=F]
   if (nrow(s.VCV) > 1000) s.VCV <- s.VCV[seq(1,nrow(s.VCV),length=1000),]
   dic <- mean(dics$V1)
   save(stats, dic, s.Sol, s.VCV, file=paste0("stats/",protein_id,".Rdata"))   
