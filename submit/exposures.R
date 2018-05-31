@@ -15,7 +15,7 @@ if (length(commandArgs(T)) > 0 & commandArgs(T)[1]=="HPC")
   nProteins <- nrow(data.index)
   nExpectedChains <- nProteins*nchain
   if (length(files) < nExpectedChains){
-    warning(paste0('Found less MCMC chains than expected. Expected: ',nExpectedChains,' Found:', length(files)))
+    error(paste0('Found less MCMC chains than expected. Expected: ',nExpectedChains,' Found:', length(files)))
   }
   
 
