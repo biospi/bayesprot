@@ -21,6 +21,12 @@ plot.samples <- function(s.Sol, design, fc, filename) {
 
   samps <- samps[,colnames(samps) %in% test_samples,drop=FALSE] 
 
+  ymin <- min(samps, na.rm = T)
+  ymax <- max(samps, na.rm = T)
+  mid <- ymax - (ymax-ymin)/2
+  d <- (ymax-mid)*1.5
+  ylim <- c(mid+d,mid-d)
+
   densities <- ddply(melt(samps, variable.name="Sample"), .(Sample), function(x)
   {
     dens <- density(x$value, n=65536)
@@ -73,6 +79,8 @@ plot.samples <- function(s.Sol, design, fc, filename) {
   g <- g + geom_text(aes(label=Down.text),x=-x_range*0.98,y=y_range*0.94,hjust=0,vjust=1,size=3.5,colour='black')    
   g <- g + geom_text(aes(x=mean,label=mean.text,hjust=mean.hjust,colour=Sample),y=y_range*0.7,vjust=1,size=3.5)
   ggsave(filename, g, height = 1+ 1*length(levels(stats$Sample)), width = 6, limitsize = F,device="png")
+
+  ylim
 }
 
 plot.peptides_sd <- function(s.VCV, design, filename) {   
@@ -321,8 +329,15 @@ plots <- function(protein_id,design,nitt,nburnin,nchain,fc,tol,do_plots) {
   if(do_plots) { 
     # plots
     print(paste0(Sys.time()," [plots() Plotting samples for protein ",protein_id,"]"))    
-    plot.samples(s.Sol, design, fc, paste0("samples/",protein_id,".png"))
+    ylim <- plot.samples(s.Sol, design, fc, paste0("samples/",protein_id,".png"))
+    print(paste0(Sys.time()," [plots() Plotting peptides for protein ",protein_id,"]"))
+    plot.peptides(s.Sol, design, paste0("peptides/",protein_id,".png"), ylim)
+    print(paste0(Sys.time()," [plots() Plotting peptides sd for protein ",protein_id,"]"))
+    plot.peptides_sd(s.VCV, design, paste0("peptides_sd/",protein_id,".png"))
+    #print(paste0(Sys.time()," [plots() Plotting digests sd for protein ",protein_id,"]"))
+    #plot.digests_sd(s.VCV, design, paste0("digests_sd/",protein_id,".png"))
   }
+
   
   # save stats, and 1000 samps for study-wide plots
   if (nrow(s.Sol) > 1000) s.Sol <- s.Sol[seq(1,nrow(s.Sol),length=1000),]
