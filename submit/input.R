@@ -176,10 +176,11 @@ if (systemHPC == "SLURM") {
   short_que <- as.character(ifelse("short_que" %in% parameters$Key,parameters$Value[parameters$Key=="short_que"],"serial"))
   total_jobs <- as.integer(ifelse("total_jobs" %in% parameters$Key,parameters$Value[parameters$Key=="total_jobs"],1))
   low_cpu_num <- as.integer(ifelse("low_cpu_num" %in% parameters$Key,parameters$Value[parameters$Key=="low_cpu_num"],6))
+  mpi_mod <- as.character(ifelse("mpi_mod" %in% parameters$Key,parameters$Value[parameters$Key=="mpi_mod"],"languages/intel/2017.01"))
 
   clusterHPC <- new(systemHPC, batch = batch, normChain = norm_chains, modelChain = model_chains, path = out_dir,
                     cpuNum = cpu_num, node = node, mem = mem, himem = himem, longQue = long_que,shortQue = short_que,
-                    totalJobs = total_jobs,lowCPUNum = low_cpu_num)
+                    totalJobs = total_jobs,lowCPUNum = low_cpu_num, mpiMod = mpi_mod)
 } else if (systemHPC == "PBS") {
   stop("PBS HPC system yet to be implemented!...")
 } else if (systemHPC == "SGE") {

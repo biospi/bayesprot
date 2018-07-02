@@ -14,7 +14,7 @@ setClass("ScheduleHPC",
     batch = 10,
     normChain = 10,
     modelChain = 100,
-    path = "."
+    path = "./"
   )
 )
 
@@ -28,7 +28,8 @@ setClass("SLURM",
     longQue = "character",
     shortQue = "character",
     totalJobs = "numeric",
-    lowCPUNum = "numeric"
+    lowCPUNum = "numeric",
+    mpiMod = "character"
   ),
   prototype
   (
@@ -39,7 +40,8 @@ setClass("SLURM",
     longQue = "cpu",
     shortQue = "serial",
     totalJobs = 1,
-    lowCPUNum = 6
+    lowCPUNum = 6,
+    mpiMod = "languages/intel/2017.01"
   ),
   contains = "ScheduleHPC"
 )
@@ -120,29 +122,45 @@ setMethod("normHPC", signature(object = "SLURM"), function(object)
 
     idx <- 1
     jobID = 0
-    for (i in 1:N)
-    {
-      if (idx == 1)
+    if (object@cpuNum == 1) {
+      for (i in 1:N)
       {
         jobID = jobID + 1
         fname=paste(file.path(object@path,"submit","norm","norm-job"),jobID,".sh",sep="",collapse="")
         sink(fname)
         cat("cd norm/results\n")
-      }
-      cat(sprintf("exec Rscript ../../norm.R %d %d %d &> ../out_std_%d_%d.out &\n",
-                    batchNum[i],vecChain[i],object@normChain,batchNum[i],vecChain[i])
-                  )
-      if ((idx == object@cpuNum) || i == N)
-      {
-        cat("wait\n")
+        cat(sprintf("exec Rscript ../../norm.R %d %d &> ../out_std_%d_%d.out &\n",
+                      batchNum[i],vecChain[i],batchNum[i],vecChain[i])
+                    )
         sink()
-        idx = 1
-      }
-      else
-      {
-        idx = idx + 1
       }
     }
+    else
+    {
+      for (i in 1:N)
+      {
+        if (idx == 1)
+        {
+          jobID = jobID + 1
+          fname=paste(file.path(object@path,"submit","norm","norm-job"),jobID,".sh",sep="")
+          sink(fname)
+          cat("cd norm/results\n")
+          cat("mpirun --outfile-pattern output.log-%r-%g-%h --errfile-pattern error.log-%r-%g-%h \\\n")
+        }
+
+        if ((idx == object@cpuNum) || i == N) {
+          cat(sprintf("  -n 1 Rscript ../../norm.R %d %d \n",batchNum[i],vecChain[i]))
+          sink()
+          idx = 1
+        }
+        else
+        {
+          cat(sprintf("  -n 1 Rscript ../../norm.R %d %d :\\\n",batchNum[i],vecChain[i]))
+          idx = idx + 1
+        }
+      }
+    }
+
     sink(file.path(object@path,"submit","bayesprot-norm.sh"))
 
     cat("#!/bin/bash\n")
@@ -152,10 +170,18 @@ setMethod("normHPC", signature(object = "SLURM"), function(object)
     cat("#SBATCH -e norm/error-%A_task-%a.out\n")
     cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@mem))
     cat(sprintf("#SBATCH -p %s\n",object@longQue))
-    cat(sprintf("#SBATCH -N %d\n",object@node))
-    cat(sprintf("#SBATCH -c %d\n",object@cpuNum))
-    cat(sprintf("#SBATCH --array=1-%d\n",jobID))
-    cat("srun sh norm/norm-job$SLURM_ARRAY_TASK_ID.sh\n")
+    cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+    if (jobID > 1)
+    {
+      cat(sprintf("#SBATCH --array=1-%d\n\n",jobID))
+      cat(sprintf("module add %s\n\n",object@mpiMod))
+      cat("srun sh norm/norm-job$SLURM_ARRAY_TASK_ID.sh\n")
+    }
+    else
+    {
+      cat(sprintf("module add %s\n\n",object@mpiMod))
+      cat("srun sh norm/norm-job1.sh\n")
+    }
 
     sink()
 
@@ -209,30 +235,48 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
 
     idx <- 1
     jobID = 0
-    for (i in 1:N)
+    if (object@cpuNum == 1)
     {
-      if (idx == 1)
+      for (i in 1:N)
       {
         jobID = jobID + 1
         fname=paste(file.path(object@path,"submit","model","model-job"),jobID,".sh",sep="",collapse="")
         sink(fname)
         cat("cd model/results\n")
-      }
-      cat(sprintf("exec Rscript ../../model.R %d %d %d &> ../out_std_%d_%d.out &\n",
-                    batchNum[i],vecChain[i],object@modelChain,batchNum[i],vecChain[i])
-                 )
-
-      if (idx == object@cpuNum || i == N)
-      {
-        cat("wait\n")
+        cat(sprintf("exec Rscript ../../model.R %d %d &> ../out_std_%d_%d.out &\n",
+                      batchNum[i],vecChain[i],batchNum[i],vecChain[i])
+                   )
         sink()
         idx = 1
       }
-      else
+    }
+    else
+    {
+      for (i in 1:N)
       {
-        idx = idx + 1
+        if (idx == 1)
+        {
+          jobID = jobID + 1
+          fname=paste(file.path(object@path,"submit","model","model-job"),jobID,".sh",sep="",collapse="")
+          sink(fname)
+          cat("cd model/results\n")
+          cat("mpirun --outfile-pattern output.log-%r-%g-%h --errfile-pattern error.log-%r-%g-%h \\\n")
+        }
+
+        if (idx == object@cpuNum || i == N)
+        {
+          cat(sprintf("  -n 1 Rscript ../../model.R %d %d \n",batchNum[i],vecChain[i]))
+          sink()
+          idx = 1
+        }
+        else
+        {
+          cat(sprintf("  -n 1 Rscript ../../model.R %d %d \\\n",batchNum[i],vecChain[i]))
+          idx = idx + 1
+        }
       }
     }
+
 
     if (object@totalJobs == 1)
     {
@@ -245,10 +289,18 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
       cat("#SBATCH -e model/error-%A_task-%a.out\n")
       cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@mem))
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
-      cat(sprintf("#SBATCH -N %d\n",object@node))
-      cat(sprintf("#SBATCH -c %d\n",object@cpuNum))
-      cat(sprintf("#SBATCH --array=1-%d\n",jobID))
-      cat("srun sh model/model-job$SLURM_ARRAY_TASK_ID.sh\n")
+      cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+      if (jobID > 1)
+      {
+        cat(sprintf("#SBATCH --array=1-%d\n\n",jobID))
+        cat(sprintf("module add %s\n\n",object@mpiMod))
+        cat("srun sh model/model-job$SLURM_ARRAY_TASK_ID.sh\n")
+      }
+      else
+      {
+        cat(sprintf("module add %s\n\n",object@mpiMod))
+        cat("srun sh model/model-job1.sh\n")
+      }
 
       sink()
     }
@@ -276,7 +328,7 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
         sink()
         if (idx > jobID)
         {
-          print(paste("ERROR: JobIB greater than number of subjobs!!! idx: ", idx, " extra: ",extra))
+          print(paste("ERROR: JobID greater than number of subjobs!!! idx: ", idx, " extra: ",extra))
         }
       }
 
@@ -289,9 +341,9 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
       cat("#SBATCH -e model/error-%A_task-%a.out\n")
       cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@mem))
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
-      cat(sprintf("#SBATCH -N %d\n",object@node))
-      cat(sprintf("#SBATCH -c %d\n",object@cpuNum))
+      cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
       cat(sprintf("#SBATCH --array=1-%d\n",object@totalJobs))
+      cat(sprintf("module add %s\n\n",object@mpiMod))
       cat("srun sh model/model-job-batch$SLURM_ARRAY_TASK_ID.sh\n")
 
       sink()
@@ -308,28 +360,45 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
 
     idx <- 1
     jobID = 0
-    for (i in 1:N)
+    if (object@cpuNum == 1)
     {
-      if (idx == 1)
+      for (i in 1:N)
       {
         jobID = jobID + 1
         fname=paste(file.path(object@path,"submit","plots","plots-job"),jobID,".sh",sep="",collapse="")
         sink(fname)
         cat("cd plots/results\n")
-      }
-      cat(sprintf("exec Rscript ../../plots.R %d &> ../out_std_%d.out &\n",batchNum[i],batchNum[i]))
-
-      if (idx == object@lowCPUNum || i == N)
-      {
-        cat("wait\n")
+        cat(sprintf("exec Rscript ../../plots.R %d &> ../out_std_%d.out &\n",batchNum[i],batchNum[i]))
         sink()
-        idx = 1
-      }
-      else
-      {
-        idx = idx + 1
       }
     }
+    else
+    {
+      for (i in 1:N)
+      {
+        if (idx == 1)
+        {
+          jobID = jobID + 1
+          fname=paste(file.path(object@path,"submit","plots","plots-job"),jobID,".sh",sep="",collapse="")
+          sink(fname)
+          cat("cd plots/results\n")
+          cat("mpirun --outfile-pattern output.log-%r-%g-%h --errfile-pattern error.log-%r-%g-%h \\\n")
+        }
+
+        if (idx == object@cpuNum || i == N)
+        {
+          cat(sprintf("  -n 1 Rscript ../../plots.R %d \n",batchNum[i]))
+          sink()
+          idx = 1
+        }
+        else
+        {
+          cat(sprintf("  -n 1 Rscript ../../plots.R %d \\\n",batchNum[i]))
+          idx = idx + 1
+        }
+      }
+    }
+
 
     if (object@totalJobs == 1)
     {
@@ -340,12 +409,20 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
       cat("#SBATCH --export=all\n")
       cat("#SBATCH -o plots/out-%A_task-%a.out\n")
       cat("#SBATCH -e plots/error-%A_task-%a.out\n")
-      cat(sprintf("#SBATCH --mem=%dG\n",(16*object@lowCPUNum)))
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
-      cat(sprintf("#SBATCH -N %d\n",object@node))
-      cat(sprintf("#SBATCH -c %d\n",object@cpuNum))
-      cat(sprintf("#SBATCH --array=1-%d\n",jobID))
-      cat("srun sh plots/plots-job$SLURM_ARRAY_TASK_ID.sh\n")
+      cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@himem))
+      cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+      if (jobID > 1)
+      {
+        cat(sprintf("#SBATCH --array=1-%d\n\n",jobID))
+        cat(sprintf("module add %s\n\n",object@mpiMod))
+        cat("srun sh plots/plots-job$SLURM_ARRAY_TASK_ID.sh\n")
+      }
+      else
+      {
+        cat(sprintf("module add %s\n\n",object@mpiMod))
+        cat("srun sh plots/plots-job1.sh\n")
+      }
 
       sink()
     }
@@ -373,7 +450,7 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
         sink()
         if (idx > jobID)
         {
-          print(paste("ERROR: JobIB greater than number of subjobs!!! idx: ", idx, " extra: ",extra))
+          print(paste("ERROR: JobID greater than number of subjobs!!! idx: ", idx, " extra: ",extra))
         }
       }
       sink(file.path(object@path,"submit","bayesprot-plots.sh"))
@@ -383,11 +460,12 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
       cat("#SBATCH --export=all\n")
       cat("#SBATCH -o plots/out-%A_task-%a.out\n")
       cat("#SBATCH -e plots/error-%A_task-%a.out\n")
-      cat(sprintf("#SBATCH --mem=%dG\n",(16*object@lowCPUNum)))
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
-      cat(sprintf("#SBATCH -N %d\n",object@node))
-      cat(sprintf("#SBATCH -c %d\n",object@cpuNum))
+      cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@himem))
+      cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
       cat(sprintf("#SBATCH --array=1-%d\n",object@totalJobs))
+
+      cat(sprintf("module add %s\n\n",object@mpiMod))
       cat("srun sh model/plots-job-batch$SLURM_ARRAY_TASK_ID.sh\n")
 
       sink()
