@@ -29,7 +29,8 @@ setClass("SLURM",
     shortQue = "character",
     totalJobs = "numeric",
     lowCPUNum = "numeric",
-    mpiMod = "character"
+    mpiMod = "character",
+    slurmMpi = "character"
   ),
   prototype
   (
@@ -41,7 +42,8 @@ setClass("SLURM",
     shortQue = "serial",
     totalJobs = 1,
     lowCPUNum = 6,
-    mpiMod = "languages/intel/2017.01"
+    mpiMod = "languages/intel/2017.01",
+    slurmMpi = "openmpi"
   ),
   contains = "ScheduleHPC"
 )
@@ -145,7 +147,7 @@ setMethod("normHPC", signature(object = "SLURM"), function(object)
           fname=paste(file.path(object@path,"submit","norm","norm-job"),jobID,".sh",sep="")
           sink(fname)
           cat("cd norm/results\n")
-          cat("mpirun --outfile-pattern output.log-%r-%g-%h --errfile-pattern error.log-%r-%g-%h \\\n")
+          cat("mpirun  \\\n")
         }
 
         if ((idx == object@cpuNum) || i == N) {
@@ -171,16 +173,17 @@ setMethod("normHPC", signature(object = "SLURM"), function(object)
     cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@mem))
     cat(sprintf("#SBATCH -p %s\n",object@longQue))
     cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+    cat("#SBATCH --cpus-per-task=1\n")
     if (jobID > 1)
     {
       cat(sprintf("#SBATCH --array=1-%d\n\n",jobID))
       cat(sprintf("module add %s\n\n",object@mpiMod))
-      cat("srun sh norm/norm-job$SLURM_ARRAY_TASK_ID.sh\n")
+      cat(sprintf("srun --mpi=%s sh norm/norm-job$SLURM_ARRAY_TASK_ID.sh\n",object@slurmMpi))
     }
     else
     {
       cat(sprintf("module add %s\n\n",object@mpiMod))
-      cat("srun sh norm/norm-job1.sh\n")
+      cat(sprintf("srun --mpi=%s sh norm/norm-job1.sh\n",object@slurmMpi))
     }
 
     sink()
@@ -260,7 +263,7 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
           fname=paste(file.path(object@path,"submit","model","model-job"),jobID,".sh",sep="",collapse="")
           sink(fname)
           cat("cd model/results\n")
-          cat("mpirun --outfile-pattern output.log-%r-%g-%h --errfile-pattern error.log-%r-%g-%h \\\n")
+          cat("mpirun  \\\n")
         }
 
         if (idx == object@cpuNum || i == N)
@@ -290,16 +293,17 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
       cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@mem))
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
       cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+      cat("#SBATCH --cpus-per-task=1\n")
       if (jobID > 1)
       {
         cat(sprintf("#SBATCH --array=1-%d\n\n",jobID))
         cat(sprintf("module add %s\n\n",object@mpiMod))
-        cat("srun sh model/model-job$SLURM_ARRAY_TASK_ID.sh\n")
+        cat(sprintf("srun --mpi=%s sh model/model-job$SLURM_ARRAY_TASK_ID.sh\n",object@slurmMpi))
       }
       else
       {
         cat(sprintf("module add %s\n\n",object@mpiMod))
-        cat("srun sh model/model-job1.sh\n")
+        cat(sprintf("srun --mpi=%s sh model/model-job1.sh\n",object@slurmMpi))
       }
 
       sink()
@@ -342,6 +346,7 @@ setMethod("modelHPC", signature(object = "SLURM"), function(object)
       cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@mem))
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
       cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+      cat("#SBATCH --cpus-per-task=1\n")
       cat(sprintf("#SBATCH --array=1-%d\n",object@totalJobs))
       cat(sprintf("module add %s\n\n",object@mpiMod))
       cat("srun sh model/model-job-batch$SLURM_ARRAY_TASK_ID.sh\n")
@@ -382,7 +387,7 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
           fname=paste(file.path(object@path,"submit","plots","plots-job"),jobID,".sh",sep="",collapse="")
           sink(fname)
           cat("cd plots/results\n")
-          cat("mpirun --outfile-pattern output.log-%r-%g-%h --errfile-pattern error.log-%r-%g-%h \\\n")
+          cat("mpirun \\\n")
         }
 
         if (idx == object@cpuNum || i == N)
@@ -412,16 +417,17 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
       cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@himem))
       cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+      cat("#SBATCH --cpus-per-task=1\n")
       if (jobID > 1)
       {
         cat(sprintf("#SBATCH --array=1-%d\n\n",jobID))
         cat(sprintf("module add %s\n\n",object@mpiMod))
-        cat("srun sh plots/plots-job$SLURM_ARRAY_TASK_ID.sh\n")
+        cat(sprintf("srun --mpi=%s sh plots/plots-job$SLURM_ARRAY_TASK_ID.sh\n",object@slurmMpi))
       }
       else
       {
         cat(sprintf("module add %s\n\n",object@mpiMod))
-        cat("srun sh plots/plots-job1.sh\n")
+        cat(sprintf("srun --mpi=%s sh plots/plots-job1.sh\n",object@slurmMpi))
       }
 
       sink()
@@ -463,6 +469,7 @@ setMethod("plotsHPC", signature(object = "SLURM"), function(object)
       cat(sprintf("#SBATCH -p %s\n",object@longQue))
       cat(sprintf("#SBATCH --mem-per-cpu=%s\n",object@himem))
       cat(sprintf("#SBATCH -n %d\n",object@cpuNum))
+      cat("#SBATCH --cpus-per-task=1\n")
       cat(sprintf("#SBATCH --array=1-%d\n",object@totalJobs))
 
       cat(sprintf("module add %s\n\n",object@mpiMod))
