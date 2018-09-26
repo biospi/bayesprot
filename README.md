@@ -1,4 +1,4 @@
-# BayesProt
+# BayesProt v1.1.0
 Bayesian linear mixed-effects model for protein-level quantification and study-level statistical testing in proteomics.
 
 Contact: Al Phillips - A.M.Phillips@liverpool.ac.uk
