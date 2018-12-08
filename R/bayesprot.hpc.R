@@ -20,29 +20,27 @@ bayesprot.hpc <- function(dd, hpc.system, id = "bayesprot.hpc", ...) {
 
   if ( hpc.system == "SLURM") {
     if (is.null(params$hpc.nthread)) params$hpc.nthread <- 14
-    if (is.null(params@hpc.batch)) params@hpc.batch <- 10
-    if (is.null(params@hpc.norm_chains)) params@hpc.norm_chains <- 10
-    if (is.null(params@hpc.model_chains)) params@hpc.model_chains <- 100
+    if (is.null(params@hpc.low_cpu_num)) params@hpc.low_cpu_num <- 1
+    if (is.null(params@hpc.batch)) params@hpc.batch <- 4
     if (is.null(params@hpc.node)) params@hpc.node <- 1
-    if (is.null(params@hpc.mem)) params@hpc.mem <- "3G"
-    if (is.null(params@hpc.himem)) params@hpc.himem <- "16G"
+    if (is.null(params@hpc.taskPerNode)) params@hpc.taskPerNode <- 1
+    if (is.null(params@hpc.mem)) params@hpc.mem <- "64000m"
+    if (is.null(params@hpc.himem)) params@hpc.lowmem <- "4000m"
     if (is.null(params@hpc.long_que)) params@hpc.long_que <- "cpu"
     if (is.null(params@hpc.short_que)) params@hpc.short_que <- "serial"
-    if (is.null(params@hpc.total_jobs)) params@hpc.total_jobs <- 1
-    if (is.null(params@hpc.low_cpu_num)) params@hpc.low_cpu_num <- 1
+    if (is.null(params@hpc.out_dir)) params@hpc.out_dir <- "."
 
-    clusterHPC <- new(hpc.system, batch = params@hpc.batch,
-                    normChain = params@hpc.norm_chains,
-                    modelChain = params@model_chains,
-                    path = params@out_dir,
-                    cpuNum = params@cpu_num,
-                    node = params@node,
-                    mem = params@mem,
-                    himem = params@himem,
-                    longQue = params@long_que,
-                    shortQue = params@short_que,
-                    totalJobs = params@total_jobs,
-                    lowCPUNum = params@low_cpu_num)
+    clusterHPC <- new(hpc.system, 
+                    batch = params@hpc.batch,
+                    path = params@hpc.out_dir,
+                    cpuNum = params@hpc.nthread,
+                    lowCPUNum = params@hpc.low_cpu_num,
+                    node = params@hpc.node,
+                    taskPerNode = params@hpc.taskPerNode,
+                    mem = params@hpc.mem,
+                    lowmem = params@hpc.lowmem,
+                    longQue = params@hpc.long_que,
+                    shortQue = params@hpc.short_que)
 
   } else if (hpc.system == "PBS") {
     stop("PBS HPC system yet to be implemented!...")
