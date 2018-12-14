@@ -5,13 +5,13 @@ require(methods)
 # Abstract Class
 setClass("ScheduleHPC",
   representation(
-    batch = "numeric",
-    path = "character"
+    nChains = "numeric",
+    path = "character",
     email = "character"
   ),
   prototype(
-    batch = 4,
-    path = "."
+    nChains = 4,
+    path = ".",
     email = "UserName@email.com"
   )
 )
@@ -44,6 +44,23 @@ setClass("SLURM",
 
 setClass("PBS",
   representation(
+    cpuNum = "numeric",
+    node = "numeric",
+    mem = "character",
+    lowmem = "character",
+    que = "character",
+    wallTime = "character",
+    lowCPUNum = "numeric"
+  ),
+  prototype
+  (
+    cpuNum = 14,
+    node = 1,
+    mem = "64000m",
+    lowmem = "4000m",
+    que = "veryshort",
+    wallTime = "12:00:00",
+    lowCPUNum = 1
   ),
   contains = "ScheduleHPC"
 )
@@ -112,6 +129,10 @@ setGeneric("genSubmit",
   }
 )
 
+############################
+### SLURM HPC Automation ###
+############################
+
 setMethod("model1", signature(object = "SLURM"), function(object)
   {
     sink(file.path(object@path,"submit","model1.slurm"))
@@ -132,9 +153,11 @@ setMethod("model1", signature(object = "SLURM"), function(object)
     cat("#SBATCH --time=14-00:00:00\n\n")
 
     cat("#SBATCH --job-name=bp.model1\n")
-    cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    }
 
-    cat(sprintf("#SBATCH --array=1-%d\n",object@batch))
+    cat(sprintf("#SBATCH --array=1-%d\n",object@nChains))
     cat("srun Rscript --vanilla ../../model.R $SLURM_ARRAY_TASK_ID\n")
 
     sink()
@@ -157,13 +180,15 @@ setMethod("study", signature(object = "SLURM"), function(object)
     cat(sprintf("#SBATCH --nodes=%d\n",object@node))
     cat(sprintf("#SBATCH --tasks-per-node=%d\n",object@taskPerNode))
     cat(sprintf("#SBATCH --cpus-per-task=%d\n",object@lowCPUNum))
-    cat(sprintf("#SBATCH --mem=%s\n\n"),object@lowmem)
+    cat(sprintf("#SBATCH --mem=%s\n\n",object@lowmem))
 
     cat(sprintf("#SBATCH --partition=%s\n",object@shortQue))
     cat("#SBATCH --time=12:00:00\n\n")
 
     cat("#SBATCH --job-name=bp.study\n")
-    cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    }
 
     cat("srun Rscript --vanilla ../../study.R model1\n")
 
@@ -194,9 +219,11 @@ setMethod("model2", signature(object = "SLURM"), function(object)
     cat("#SBATCH --time=14-00:00:00\n\n")
 
     cat("#SBATCH --job-name=bp.model2\n")
-    cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    }
 
-    cat(sprintf("#SBATCH --array=1-%d\n",object@batch))
+    cat(sprintf("#SBATCH --array=1-%d\n",object@nChains))
     cat("srun Rscript --vanilla ../../model.R $SLURM_ARRAY_TASK_ID\n")
 
     sink()
@@ -220,13 +247,15 @@ setMethod("quant", signature(object = "SLURM"), function(object)
     cat(sprintf("#SBATCH --nodes=%d\n",object@node))
     cat(sprintf("#SBATCH --tasks-per-node=%d\n",object@taskPerNode))
     cat(sprintf("#SBATCH --cpus-per-task=%d\n",object@lowCPUNum))
-    cat(sprintf("#SBATCH --mem=%s\n\n"),object@lowmem)
+    cat(sprintf("#SBATCH --mem=%s\n\n",object@lowmem))
 
     cat(sprintf("#SBATCH --partition=%s\n",object@shortQue))
     cat("#SBATCH --time=12:00:00\n\n")
 
     cat("#SBATCH --job-name=bp.quant\n")
-    cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    }
 
     cat("srun Rscript --vanilla ../../quant.R model2\n")
 
@@ -257,9 +286,11 @@ setMethod("qprot", signature(object = "SLURM"), function(object)
     cat("#SBATCH --time=14-00:00:00\n\n")
 
     cat("#SBATCH --job-name=bp.qprot\n")
-    cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    }
 
-    cat(sprintf("#SBATCH --array=1-%d\n",object@batch))
+    cat(sprintf("#SBATCH --array=1-%d\n",object@nChains))
     cat("srun Rscript ../../qprot.R $SLURM_ARRAY_TASK_ID\n\n")
 
     sink()
@@ -282,13 +313,15 @@ setMethod("de", signature(object = "SLURM"), function(object)
     cat(sprintf("#SBATCH --nodes=%d\n",object@node))
     cat(sprintf("#SBATCH --tasks-per-node=%d\n",object@taskPerNode))
     cat(sprintf("#SBATCH --cpus-per-task=%d\n",object@lowCPUNum))
-    cat(sprintf("#SBATCH --mem=%s\n\n"),object@lowmem)
+    cat(sprintf("#SBATCH --mem=%s\n\n",object@lowmem))
 
     cat(sprintf("#SBATCH --partition=%s\n",object@shortQue))
     cat("#SBATCH --time=12:00:00\n\n")
 
     cat("#SBATCH --job-name=bp.de\n")
-    cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
+    }
 
     cat("srun Rscript --vanilla ../../de.R\n")
 
@@ -301,7 +334,7 @@ setMethod("de", signature(object = "SLURM"), function(object)
 setMethod("genSubmit", signature(object = "SLURM"), function(object)
   {
     sink(file.path(object@path,"submit","slurm.sh"))
-    
+
     cat("#!/bin/bash\n")
     cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     cat("pushd $DIR > /dev/null\n\n")
@@ -336,3 +369,303 @@ setMethod("genSubmit", signature(object = "SLURM"), function(object)
     system(paste("chmod u+x",file.path(object@path,"submit","slurm.sh")))
   }
 )
+
+
+###########################
+### PBS HPC Automation ####
+###########################
+
+setMethod("model1", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","model1.pbs"))
+    cat("#!/bin/bash\n\n")
+
+    cat("#PBS -o model1\n")
+    cat("#PBS -j oe\n")
+    cat("#PBS -r y\n\n")
+
+    cat(sprintf("#PBS -l nodes=%d:ppn=%d\n",object@node,object@cpuNum))
+    cat(sprintf("#PBS -l mem=%s\n\n",object@mem))
+
+    cat(sprintf("#PBS -q %s\n",object@que))
+    cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
+
+    cat("#PBS -N bp.model1\n")
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#PBS -M %s\n\n",object@email))
+    }
+
+    cat(sprintf("#PBS -t 1-%d\n",object@nChains))
+    cat("cd $PBS_O_WORKDIR/model1/results\n")
+    cat("Rscript --vanilla ../../model.R $PBS_ARRAYID\n\n")
+
+    cat("EXITCODE=$?\n")
+    cat("qstat -f $PBS_JOBID\n")
+    cat("exit $EXITCODE\n\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","model1.pbs")))
+  }
+)
+
+setMethod("study", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","study.pbs"))
+    cat("#!/bin/bash\n\n")
+
+    cat("#PBS -o study\n")
+    cat("#PBS -j oe\n")
+    cat("#PBS -r y\n")
+    cat("#PBS -m ae\n\n")
+
+    cat(sprintf("#PBS -l nodes=%d:ppn=%d\n",object@node,object@lowCPUNum))
+    cat(sprintf("#PBS -l mem=%s\n\n",object@lowmem))
+
+    cat(sprintf("#PBS -q %s\n",object@que))
+    cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
+
+    cat("#PBS -N bp.study\n")
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#PBS -M %s\n\n",object@email))
+    }
+
+    cat("cd $PBS_O_WORKDIR/study/results\n")
+    cat("Rscript --vanilla ../../study.R model1\n\n")
+
+    cat("if [ $? -eq 0 ]\n")
+    cat("then\n")
+    cat("  ../../_pbs2.sh\n")
+    cat("fi\n\n")
+
+    cat("EXITCODE=$?\n")
+    cat("qstat -f $PBS_JOBID\n")
+    cat("exit $EXITCODE\n\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","study.pbs")))
+  }
+)
+
+
+setMethod("model2", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","model2.pbs"))
+    cat("#!/bin/bash\n\n")
+
+    cat("#PBS -o model2\n")
+    cat("#PBS -j oe\n")
+    cat("#PBS -r y\n\n")
+
+    cat(sprintf("#PBS -l nodes=%d:ppn=%d\n",object@node,object@cpuNum))
+    cat(sprintf("#PBS -l mem=%s\n\n",object@mem))
+
+    cat(sprintf("#PBS -q %s\n",object@que))
+    cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
+
+    cat("#PBS -N bp.model2\n")
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#PBS -M %s\n\n",object@email))
+    }
+
+    cat(sprintf("#PBS -t 1-%d\n",object@nChains))
+    cat("cd $PBS_O_WORKDIR/model2/results\n")
+    cat("Rscript --vanilla ../../model.R $PBS_ARRAYID\n\n")
+
+    cat("EXITCODE=$?\n")
+    cat("qstat -f $PBS_JOBID\n")
+    cat("exit $EXITCODE\n\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","model2.pbs")))
+  }
+)
+
+
+setMethod("quant", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","quant.pbs"))
+    cat("#!/bin/bash\n\n")
+
+    cat("#PBS -o quant\n")
+    cat("#PBS -j oe\n")
+    cat("#PBS -r y\n")
+    cat("#PBS -m ae\n\n")
+
+    cat(sprintf("#PBS -l nodes=%d:ppn=%d\n",object@node,object@lowCPUNum))
+    cat(sprintf("#PBS -l mem=%s\n\n",object@lowmem))
+
+    cat(sprintf("#PBS -q %s\n",object@que))
+    cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
+
+    cat("#PBS -N bp.quant\n")
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#PBS -M %s\n\n",object@email))
+    }
+
+    cat("cd $PBS_O_WORKDIR/quant/results\n")
+    cat("Rscript --vanilla ../../quant.R model2\n\n")
+
+    cat("if [ $? -eq 0 ]\n")
+    cat("then\n")
+    cat("  ../../_pbs3.sh\n")
+    cat("fi\n\n")
+
+    cat("EXITCODE=$?\n")
+    cat("qstat -f $PBS_JOBID\n")
+    cat("exit $EXITCODE\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","quant.pbs")))
+  }
+)
+
+
+setMethod("qprot", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","qprot.pbs"))
+    cat("#!/bin/bash\n\n")
+
+    cat("#PBS -o qprot\n")
+    cat("#PBS -j oe\n")
+    cat("#PBS -r y\n\n")
+
+    cat(sprintf("#PBS -l nodes=%d:ppn=%d\n",object@node,object@cpuNum))
+    cat(sprintf("#PBS -l mem=%s\n\n",object@mem))
+
+    cat(sprintf("#PBS -q %s\n",object@que))
+    cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
+
+    cat("#PBS -N bp.qprot\n")
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#PBS -M %s\n\n",object@email))
+    }
+
+    cat(sprintf("#PBS -t 1-%d\n",object@nChains))
+    cat("cd $PBS_O_WORKDIR/qprot/results\n")
+    cat("Rscript ../../qprot.R $PBS_ARRAYID\n\n")
+
+    cat("EXITCODE=$?\n")
+    cat("qstat -f $PBS_JOBID\n")
+    cat("exit $EXITCODE\n\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","qprot.pbs")))
+  }
+)
+
+setMethod("de", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","de.pbs"))
+    cat("#!/bin/bash\n\n")
+
+    cat("#PBS -o de\n")
+    cat("#PBS -j oe\n")
+    cat("#PBS -r y\n")
+    cat("#PBS -m ae\n\n")
+
+    cat(sprintf("#PBS -l nodes=%d:ppn=%d\n",object@node,object@lowCPUNum))
+    cat(sprintf("#PBS -l mem=%s\n\n",object@lowmem))
+
+    cat(sprintf("#PBS -q %s\n",object@que))
+    cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
+
+    cat("#PBS -N bp.de\n")
+    if (object@email != "UserName@email.com"){
+      cat(sprintf("#PBS -M %s\n\n",object@email))
+    }
+
+    cat("cd $PBS_O_WORKDIR/de/results\n")
+    cat("Rscript --vanilla ../../de.R\n\n")
+
+    cat("EXITCODE=$?\n")
+    cat("qstat -f $PBS_JOBID\n")
+    cat("exit $EXITCODE\n\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","de.pbs")))
+  }
+)
+
+setMethod("genSubmit", signature(object = "PBS"), function(object)
+  {
+    sink(file.path(object@path,"submit","pbs.sh"))
+    cat("#!/bin/bash\n")
+    cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
+    cat("pushd $DIR > /dev/null\n\n")
+
+    cat("# job chain\n")
+    cat("MODEL1=$(qsub model1.pbs)\n")
+    cat("STUDY=$(qsub -W depend=afterokarray:$MODEL1 study.pbs)\n")
+    cat("EXITCODE=$?\n\n")
+
+    cat("# clean up\n")
+    cat("if [[ $EXITCODE != 0 ]]; then\n")
+    cat("  qdel $MODEL1 $STUDY\n")
+    cat("  echo Failed to submit jobs!\n")
+    cat("else\n")
+    cat("  echo Submitted jobs! To cancel execute $DIR/cancel.sh\n")
+    cat("  echo '#!/bin/bash' > $DIR/cancel.sh\n")
+    cat("  echo qdel $MODEL1 $STUDY >> $DIR/cancel.sh\n")
+    cat("  chmod u+x $DIR/cancel.sh\n")
+    cat("fi\n\n")
+
+    cat("popd > /dev/null\n")
+    cat("exit $EXITCODE\n")
+    sink()
+
+
+    sink(file.path(object@path,"submit","_pbs2.sh"))
+    cat("#!/bin/bash\n")
+    cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
+    cat("pushd $DIR > /dev/null\n\n")
+
+    cat("# job chain\n")
+    cat("MODEL2=$(qsub model2.pbs)\n")
+    cat("QUANT=$(qsub -W depend=afterokarray:$MODEL2 quant.pbs)\n")
+    cat("EXITCODE=$?\n\n")
+
+    cat("# clean up\n")
+    cat("if [[ $EXITCODE != 0 ]]; then\n")
+    cat("  qdel $MODEL2 $QUANT\n")
+    cat("  echo Failed to submit jobs!\n")
+    cat("else\n")
+    cat("  echo Submitted jobs! To cancel execute $DIR/cancel.sh\n")
+    cat("  echo '#!/bin/bash' > $DIR/cancel.sh\n")
+    cat("  echo qdel $MODEL2 $QUANT >> $DIR/cancel.sh\n")
+    cat("  chmod u+x $DIR/cancel.sh\n")
+    cat("fi\n\n")
+
+    cat("popd > /dev/null\n")
+    cat("exit $EXITCODE\n")
+    sink()
+
+
+    sink(file.path(object@path,"submit","_pbs3.sh"))
+    cat("#!/bin/bash\n")
+    cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
+    cat("pushd $DIR > /dev/null\n\n")
+
+    cat("# job chain\n")
+    cat("QPROT=$(qsub qprot.pbs)\n")
+    cat("DE=$(qsub -W depend=afterokarray:$QPROT de.pbs)\n")
+    cat("EXITCODE=$?\n\n")
+
+    cat("# clean up\n")
+    cat("if [[ $EXITCODE != 0 ]]; then\n")
+    cat("  qdel $QPROT $DE\n")
+    cat("  echo Failed to submit jobs!\n")
+    cat("else\n")
+    cat("  echo Submitted jobs! To cancel execute $DIR/cancel.sh\n")
+    cat("  echo '#!/bin/bash' > $DIR/cancel.sh\n")
+    cat("  echo qdel $QPROT $DE >> $DIR/cancel.sh\n")
+    cat("  chmod u+x $DIR/cancel.sh\n")
+    cat("fi\n\n")
+
+    cat("popd > /dev/null\n")
+    cat("exit $EXITCODE\n")
+    sink()
+
+    system(paste("chmod u+x",file.path(object@path,"submit","slurm.sh")))
+  }
+)
+

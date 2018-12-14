@@ -4,7 +4,7 @@
 #' @return The sum of \code{x} and \code{y}.
 #' @export
 
-bayesprot.hpc <- function(dd, hpc.system, id = "bayesprot.hpc", ...) {
+bayesprot.hpc <- function(dd, hpc.system = "SLURM", id = "bayesprot.hpc", ...) {
   message(paste0("BayesProt HPC v", packageVersion("bayesprot"), " | © 2015-2018 BioSP", utf8::utf8_encode("\U0001f441"), " Laboratory"))
   message("This program comes with ABSOLUTELY NO WARRANTY.")
   message("This is free software, and you are welcome to redistribute it under certain conditions.")
@@ -20,37 +20,60 @@ bayesprot.hpc <- function(dd, hpc.system, id = "bayesprot.hpc", ...) {
 
   if ( hpc.system == "SLURM") {
     if (is.null(params$hpc.nthread)) params$hpc.nthread <- 14
-    if (is.null(params@hpc.low_cpu_num)) params@hpc.low_cpu_num <- 1
-    if (is.null(params@hpc.batch)) params@hpc.batch <- 4
-    if (is.null(params@hpc.node)) params@hpc.node <- 1
-    if (is.null(params@hpc.taskPerNode)) params@hpc.taskPerNode <- 1
-    if (is.null(params@hpc.mem)) params@hpc.mem <- "64000m"
-    if (is.null(params@hpc.himem)) params@hpc.lowmem <- "4000m"
-    if (is.null(params@hpc.long_que)) params@hpc.long_que <- "cpu"
-    if (is.null(params@hpc.short_que)) params@hpc.short_que <- "serial"
-    if (is.null(params@hpc.out_dir)) params@hpc.out_dir <- "."
+    if (is.null(params$hpc.low_cpu_num)) params$hpc.low_cpu_num <- 1
+    if (is.null(params$hpc.nChains)) params$hpc.nChains <- 4
+    if (is.null(params$hpc.node)) params$hpc.node <- 1
+    if (is.null(params$hpc.taskPerNode)) params$hpc.taskPerNode <- 1
+    if (is.null(params$hpc.mem)) params$hpc.mem <- "64000m"
+    if (is.null(params$hpc.himem)) params$hpc.lowmem <- "4000m"
+    if (is.null(params$hpc.long_que)) params$hpc.long_que <- "cpu"
+    if (is.null(params$hpc.short_que)) params$hpc.short_que <- "serial"
+    if (is.null(params$hpc.email)) params$hpc.email <- "UserName@email.com"
+    if (is.null(params$hpc.out_dir)) params$hpc.out_dir <- "."
 
-    clusterHPC <- new(hpc.system, 
-                    batch = params@hpc.batch,
-                    path = params@hpc.out_dir,
-                    cpuNum = params@hpc.nthread,
-                    lowCPUNum = params@hpc.low_cpu_num,
-                    node = params@hpc.node,
-                    taskPerNode = params@hpc.taskPerNode,
-                    mem = params@hpc.mem,
-                    lowmem = params@hpc.lowmem,
-                    longQue = params@hpc.long_que,
-                    shortQue = params@hpc.short_que)
+    clusterHPC <- new(hpc.system,
+                    nChains = params$hpc.nChains,
+                    path = params$hpc.out_dir,
+                    email = params$hpc.email,
+                    cpuNum = params$hpc.nthread,
+                    lowCPUNum = params$hpc.low_cpu_num,
+                    node = params$hpc.node,
+                    taskPerNode = params$hpc.taskPerNode,
+                    mem = params$hpc.mem,
+                    lowmem = params$hpc.lowmem,
+                    longQue = params$hpc.long_que,
+                    shortQue = params$hpc.short_que)
 
   } else if (hpc.system == "PBS") {
-    stop("PBS HPC system yet to be implemented!...")
+    if (is.null(params$hpc.nthread)) params$hpc.nthread <- 14
+    if (is.null(params$hpc.low_cpu_num)) params$hpc.low_cpu_num <- 1
+    if (is.null(params$hpc.nChains)) params$hpc.nChains <- 4
+    if (is.null(params$hpc.node)) params$hpc.node <- 1
+    if (is.null(params$hpc.mem)) params$hpc.mem <- "64000m"
+    if (is.null(params$hpc.himem)) params$hpc.lowmem <- "4000m"
+    if (is.null(params$hpc.que)) params$hpc.que <- "veryshort"
+    if (is.null(params$hpc.walltime)) params$hpc.walltime <- "12:00:00"
+    if (is.null(params$hpc.email)) params$hpc.email <- "UserName@email.com"
+    if (is.null(params$hpc.out_dir)) params$hpc.out_dir <- "."
+
+    clusterHPC <- new(hpc.system,
+                    nChains = params$hpc.nChains,
+                    path = params$hpc.out_dir,
+                    email = params$hpc.email,
+                    cpuNum = params$hpc.nthread,
+                    lowCPUNum = params$hpc.low_cpu_num,
+                    node = params$hpc.node,
+                    mem = params$hpc.mem,
+                    lowmem = params$hpc.lowmem,
+                    wallTime = params$hpc.walltime,
+                    que = params$hpc.que)
   } else if (hpc.system == "SGE") {
     stop("SGE HPC system yet to be implemented!...")
   } else {
     stop("Error: Unknown HPC system. Possible HPC systems = SLURM, PBS, SGE.")
   }
 
-  #message(paste("batch",batch,"norm_chain",norm_chains,"model_chains",model_chains,"cpu_num",cpu_num,"node",node,"mem",
+  #message(paste("nChains",nChains,"norm_chain",norm_chains,"model_chains",model_chains,"cpu_num",cpu_num,"node",node,"mem",
   #              mem,"himem",himem,"long_que",long_que,"short_que",short_que,"total_jobs",total_jobs,"low_cpu_num",low_cpu_num))
 
   # model1:
@@ -70,7 +93,7 @@ bayesprot.hpc <- function(dd, hpc.system, id = "bayesprot.hpc", ...) {
 
   # setup input
   tmp.dir <- tempfile("bayesprot.")
-  process.input(dd, file.path(tmp.dir, id), nthread = param@hpc.nthread, ...)
+  process.input(dd, file.path(tmp.dir, id), nthread = params$hpc.nthread, ...)
 
   # create zip file
   wd <- getwd()
