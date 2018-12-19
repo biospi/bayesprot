@@ -135,7 +135,7 @@ setGeneric("genSubmit",
 
 setMethod("model1", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","model1.slurm"))
+    sink(file.path(object@path,"model1.slurm"))
 
     cat("#!/bin/bash\n\n")
 
@@ -162,13 +162,13 @@ setMethod("model1", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","model1.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"model1.slurm")))
   }
 )
 
 setMethod("study", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","study.slurm"))
+    sink(file.path(object@path,"study.slurm"))
 
     cat("#!/bin/bash\n\n")
 
@@ -194,14 +194,14 @@ setMethod("study", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","study.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"study.slurm")))
   }
 )
 
 
 setMethod("model2", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","model2.slurm"))
+    sink(file.path(object@path,"model2.slurm"))
 
     cat("#!/bin/bash\n\n")
 
@@ -228,14 +228,14 @@ setMethod("model2", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","model2.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"model2.slurm")))
   }
 )
 
 
 setMethod("quant", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","quant.slurm"))
+    sink(file.path(object@path,"quant.slurm"))
 
     cat("#!/bin/bash\n\n")
 
@@ -261,14 +261,14 @@ setMethod("quant", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","quant.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"quant.slurm")))
   }
 )
 
 
 setMethod("qprot", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","qprot.slurm"))
+    sink(file.path(object@path,"qprot.slurm"))
 
     cat("#!/bin/bash\n\n")
 
@@ -295,13 +295,13 @@ setMethod("qprot", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","qprot.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"qprot.slurm")))
   }
 )
 
 setMethod("de", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","de.slurm"))
+    sink(file.path(object@path,"de.slurm"))
 
     cat("#!/bin/bash\n\n")
 
@@ -327,13 +327,13 @@ setMethod("de", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","de.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"de.slurm")))
   }
 )
 
 setMethod("genSubmit", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"submit","slurm.sh"))
+    sink(file.path(object@path,"slurm.sh"))
 
     cat("#!/bin/bash\n")
     cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
@@ -366,7 +366,7 @@ setMethod("genSubmit", signature(object = "SLURM"), function(object)
 
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","slurm.sh")))
+    system(paste("chmod u+x",file.path(object@path,"slurm.sh")))
   }
 )
 
@@ -377,7 +377,7 @@ setMethod("genSubmit", signature(object = "SLURM"), function(object)
 
 setMethod("model1", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","model1.pbs"))
+    sink(file.path(object@path,"model1.pbs"))
     cat("#!/bin/bash\n\n")
 
     cat("#PBS -o model1\n")
@@ -404,13 +404,13 @@ setMethod("model1", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","model1.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"model1.pbs")))
   }
 )
 
 setMethod("study", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","study.pbs"))
+    sink(file.path(object@path,"study.pbs"))
     cat("#!/bin/bash\n\n")
 
     cat("#PBS -o study\n")
@@ -442,14 +442,14 @@ setMethod("study", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","study.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"study.pbs")))
   }
 )
 
 
 setMethod("model2", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","model2.pbs"))
+    sink(file.path(object@path,"model2.pbs"))
     cat("#!/bin/bash\n\n")
 
     cat("#PBS -o model2\n")
@@ -476,14 +476,14 @@ setMethod("model2", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","model2.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"model2.pbs")))
   }
 )
 
 
 setMethod("quant", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","quant.pbs"))
+    sink(file.path(object@path,"quant.pbs"))
     cat("#!/bin/bash\n\n")
 
     cat("#PBS -o quant\n")
@@ -515,14 +515,14 @@ setMethod("quant", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","quant.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"quant.pbs")))
   }
 )
 
 
 setMethod("qprot", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","qprot.pbs"))
+    sink(file.path(object@path,"qprot.pbs"))
     cat("#!/bin/bash\n\n")
 
     cat("#PBS -o qprot\n")
@@ -549,13 +549,13 @@ setMethod("qprot", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","qprot.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"qprot.pbs")))
   }
 )
 
 setMethod("de", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","de.pbs"))
+    sink(file.path(object@path,"de.pbs"))
     cat("#!/bin/bash\n\n")
 
     cat("#PBS -o de\n")
@@ -582,13 +582,13 @@ setMethod("de", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","de.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"de.pbs")))
   }
 )
 
 setMethod("genSubmit", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"submit","pbs.sh"))
+    sink(file.path(object@path,"pbs.sh"))
     cat("#!/bin/bash\n")
     cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     cat("pushd $DIR > /dev/null\n\n")
@@ -614,7 +614,7 @@ setMethod("genSubmit", signature(object = "PBS"), function(object)
     sink()
 
 
-    sink(file.path(object@path,"submit","_pbs2.sh"))
+    sink(file.path(object@path,"_pbs2.sh"))
     cat("#!/bin/bash\n")
     cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     cat("pushd $DIR > /dev/null\n\n")
@@ -640,7 +640,7 @@ setMethod("genSubmit", signature(object = "PBS"), function(object)
     sink()
 
 
-    sink(file.path(object@path,"submit","_pbs3.sh"))
+    sink(file.path(object@path,"_pbs3.sh"))
     cat("#!/bin/bash\n")
     cat("DIR=\"$( cd \"$( dirname \"${BASH_SOURCE[0]}\" )\" && pwd )\"\n")
     cat("pushd $DIR > /dev/null\n\n")
@@ -665,7 +665,9 @@ setMethod("genSubmit", signature(object = "PBS"), function(object)
     cat("exit $EXITCODE\n")
     sink()
 
-    system(paste("chmod u+x",file.path(object@path,"submit","slurm.sh")))
+    system(paste("chmod u+x",file.path(object@path,"pbs.sh")))
+    system(paste("chmod u+x",file.path(object@path,"_pbs2.sh")))
+    system(paste("chmod u+x",file.path(object@path,"_pbs3.sh")))
   }
 )
 

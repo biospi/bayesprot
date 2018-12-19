@@ -102,8 +102,9 @@ process.input <- function(dd, id = "bayesprot", ref.assays = levels(dd$Assay), d
   dir.create(file.path(id, "quant", "results"), recursive = T)
   if (!is.null(dd.de.design)) dir.create(file.path(id, "qprot", "results"), recursive = T)
   if (!is.null(dd.de.design)) dir.create(file.path(id, "de", "results"), recursive = T)
-  for (file in list.files(system.file("hpc", package = "bayesprot"))) {
+  for (file in list.files(system.file("hpc", package = "bayesprot"),pattern="*.R")) {
     if (!(is.null(dd.de.design) & grepl("^qprot", file)) & !(is.null(dd.de.design) & grepl("^de", file))) {
+      print(file.path(system.file("hpc", package = "bayesprot"), file))
       file.copy(file.path(system.file("hpc", package = "bayesprot"), file), id, recursive = T)
     }
   }

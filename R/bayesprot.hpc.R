@@ -18,6 +18,11 @@ bayesprot.hpc <- function(dd, hpc.system = "SLURM", id = "bayesprot.hpc", ...) {
   #if (is.null(params$nthread)) params$nthread <- parallel::detectCores(logical = F)
   #if (is.null(params$hpc.system)) params$hpc.system <- "SLURM"
 
+  # setup input
+  tmp.dir <- tempfile("bayesprot.")
+  dir.create(file.path(tmp.dir, id), recursive = T)
+  print(file.path(tmp.dir, id))
+
   if ( hpc.system == "SLURM") {
     if (is.null(params$hpc.nthread)) params$hpc.nthread <- 14
     if (is.null(params$hpc.low_cpu_num)) params$hpc.low_cpu_num <- 1
@@ -29,7 +34,7 @@ bayesprot.hpc <- function(dd, hpc.system = "SLURM", id = "bayesprot.hpc", ...) {
     if (is.null(params$hpc.long_que)) params$hpc.long_que <- "cpu"
     if (is.null(params$hpc.short_que)) params$hpc.short_que <- "serial"
     if (is.null(params$hpc.email)) params$hpc.email <- "UserName@email.com"
-    if (is.null(params$hpc.out_dir)) params$hpc.out_dir <- "."
+    if (is.null(params$hpc.out_dir)) params$hpc.out_dir <- file.path(tmp.dir, id)
 
     clusterHPC <- new(hpc.system,
                     nChains = params$hpc.nChains,
@@ -54,7 +59,7 @@ bayesprot.hpc <- function(dd, hpc.system = "SLURM", id = "bayesprot.hpc", ...) {
     if (is.null(params$hpc.que)) params$hpc.que <- "veryshort"
     if (is.null(params$hpc.walltime)) params$hpc.walltime <- "12:00:00"
     if (is.null(params$hpc.email)) params$hpc.email <- "UserName@email.com"
-    if (is.null(params$hpc.out_dir)) params$hpc.out_dir <- "."
+    if (is.null(params$hpc.out_dir)) params$hpc.out_dir <- file.path(tmp.dir, id)
 
     clusterHPC <- new(hpc.system,
                     nChains = params$hpc.nChains,
@@ -76,6 +81,8 @@ bayesprot.hpc <- function(dd, hpc.system = "SLURM", id = "bayesprot.hpc", ...) {
   #message(paste("nChains",nChains,"norm_chain",norm_chains,"model_chains",model_chains,"cpu_num",cpu_num,"node",node,"mem",
   #              mem,"himem",himem,"long_que",long_que,"short_que",short_que,"total_jobs",total_jobs,"low_cpu_num",low_cpu_num))
 
+  process.input(dd, file.path(tmp.dir, id), nthread = params$hpc.nthread, ...)
+
   # model1:
   model1(clusterHPC)
   # study:
@@ -90,10 +97,6 @@ bayesprot.hpc <- function(dd, hpc.system = "SLURM", id = "bayesprot.hpc", ...) {
   de(clusterHPC)
   # Genorate HPC job file:
   genSubmit(clusterHPC)
-
-  # setup input
-  tmp.dir <- tempfile("bayesprot.")
-  process.input(dd, file.path(tmp.dir, id), nthread = params$hpc.nthread, ...)
 
   # create zip file
   wd <- getwd()
