@@ -2,16 +2,13 @@
 % Please edit documentation in R/process.de.R
 \name{process.de}
 \alias{process.de}
-\title{Add together two numbers.}
+\title{process.de (BayesProt internal function)}
 \usage{
 process.de()
 }
-\arguments{
-\item{datafile}{A number.}
-}
 \value{
-The sum of \code{x} and \code{y}.
+.
 }
 \description{
-Add together two numbers.
+process.de (BayesProt internal function)
 }

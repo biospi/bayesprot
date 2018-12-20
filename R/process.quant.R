@@ -1,7 +1,7 @@
-#' Add together two numbers.
+#' process.quant (BayesProt internal function)
 #'
-#' @param datafile A number.
-#' @return The sum of \code{x} and \code{y}.
+#' @param input_dir .
+#' @return .
 #' @import data.table
 #' @export
 
@@ -9,8 +9,13 @@ process.quant <- function(input_dir) {
   message(paste0("[", Sys.time(), "] QUANT started"))
 
   # load parameters
-  prefix <- ifelse(file.exists("metadata.Rdata"), ".", file.path("..", "..", "input"))
-  load(file.path(prefix, "metadata.Rdata"))
+  prefix <- ifelse(file.exists("params.rds"), ".", file.path("..", "..", "input"))
+  params <- readRDS(file.path(prefix, "params.rds"))
+  stats.dir <- paste0(params$id, ".de")
+  dd.assays <- fst::read.fst(file.path(prefix, "assays.fst"), as.data.table = T)
+  dd.proteins <- fst::read.fst(file.path(prefix, "proteins.fst"), as.data.table = T)
+  dd.peptides <- fst::read.fst(file.path(prefix, "peptides.fst"), as.data.table = T)
+  dd.features <- fst::read.fst(file.path(prefix, "features.fst"), as.data.table = T)
   nsamp <- (params$quant.nitt - params$quant.burnin) / params$quant.thin
 
   nA <- length(levels(dd.assays$AssayID))
@@ -20,7 +25,7 @@ process.quant <- function(input_dir) {
 
   # create subdirectories
   prefix <- ifelse(file.exists("1.Rdata"), ".", file.path("..", "..", input_dir, "results"))
-  stats.dir <- paste0(params$id, ".bayesprot.quant")
+  stats.dir <- paste0(params$id, ".quant")
   dir.create(stats.dir, showWarnings = F)
   dir.create("quants", showWarnings = F)
 
@@ -28,20 +33,20 @@ process.quant <- function(input_dir) {
 
   timings <- array(NA, c(nP, params$quant.nchain))
 
-  feature.stdevs.sum <- array(NA, c(nF, params$quant.nchain))
-  feature.stdevs.n <- array(NA, c(nF, params$quant.nchain))
+  feature.stdevs.sum <- array(0, c(nF, params$quant.nchain))
+  feature.stdevs.n <- array(0, c(nF, params$quant.nchain))
 
-  peptide.stdevs.sum <- array(NA, c(nT, params$quant.nchain))
-  peptide.stdevs.n <- array(NA, c(nT, params$quant.nchain))
+  peptide.stdevs.sum <- array(0, c(nT, params$quant.nchain))
+  peptide.stdevs.n <- array(0, c(nT, params$quant.nchain))
 
-  peptide.deviations.sum <- array(NA, c(nT, nA, params$quant.nchain))
-  peptide.deviations.sumsqrs <- array(NA, c(nT, nA, params$quant.nchain))
-  peptide.deviations.n <- array(NA, c(nT, nA, params$quant.nchain))
+  peptide.deviations.sum <- array(0, c(nT, nA, params$quant.nchain))
+  peptide.deviations.sumsqrs <- array(0, c(nT, nA, params$quant.nchain))
+  peptide.deviations.n <- array(0, c(nT, nA, params$quant.nchain))
 
   mcmc.exposures <- matrix(NA, nsamp * params$quant.nchain, nA)
-  protein.quants.sum <- array(NA, c(nP, nA, params$quant.nchain))
-  protein.quants.sumsqrs <- array(NA, c(nP, nA, params$quant.nchain))
-  protein.quants.n <- array(NA, c(nP, nA, params$quant.nchain))
+  protein.quants.sum <- array(0, c(nP, nA, params$quant.nchain))
+  protein.quants.sumsqrs <- array(0, c(nP, nA, params$quant.nchain))
+  protein.quants.n <- array(0, c(nP, nA, params$quant.nchain))
 
   for (j in 1:params$quant.nchain) {
     message("[", paste0(Sys.time(), "]  reading chain ", j, "/", params$quant.nchain, "..."))
@@ -102,7 +107,7 @@ process.quant <- function(input_dir) {
       for (b in bs[!is.na(bs)]) {
         as <- which(protein.baselines[p,] == b)
         rs <- intersect(as, as.integer(dd.assays[isRef == T, AssayID]))
-        mcmc.protein.quants[, p, as] <- mcmc.protein.quants[, p, as] - rowMeans(mcmc.protein.quants[, p, rs])
+        mcmc.protein.quants[, p, as] <- mcmc.protein.quants[, p, as] - rowMeans(mcmc.protein.quants[, p, rs, drop = F])
       }
     }
 
@@ -207,7 +212,7 @@ process.quant <- function(input_dir) {
   # plot label exposures
   message("[", paste0(Sys.time(), "]  writing exposures..."))
   g <- plot.exposures(mcmc.exposures)
-  ggplot2::ggsave(file.path(stats.dir, "exposures.pdf"), g, width = 8, height = 0.5 * nA)
+  ggplot2::ggsave(file.path(stats.dir, "exposures.pdf"), g, width = 8, height = 0.5 * nA, limitsize = F)
   saveRDS(mcmc.exposures, "exposures.rds")
 
 
@@ -229,7 +234,7 @@ process.quant <- function(input_dir) {
   colnames(peptide.deviations.mean) <- paste("x", dd.assays$Assay)
   fwrite(cbind(dd.peptides, peptide.deviations.mean), file.path(stats.dir, "peptide_deviations.csv"))
 
-  peptide.deviations.stdev <- sqrt(peptide.deviations.sumsqrs + peptide.deviations.sum^2 / peptide.deviations.n)
+  peptide.deviations.stdev <- sqrt(peptide.deviations.sumsqrs / peptide.deviations.n - peptide.deviations.mean^2)
   colnames(peptide.deviations.stdev) <- paste("x", dd.assays$Assay)
   fwrite(cbind(dd.peptides, peptide.deviations.stdev), file.path(stats.dir, "peptide_deviations_stdevs.csv"))
 
@@ -238,7 +243,7 @@ process.quant <- function(input_dir) {
   colnames(protein.quants.mean) <- paste("x", dd.assays$Assay)
   fwrite(cbind(dd.proteins, protein.quants.mean), file.path(stats.dir, "protein_quants.csv"))
 
-  protein.quants.stdev <- sqrt(protein.quants.sumsqrs + protein.quants.sum^2 / protein.quants.n)
+  protein.quants.stdev <- sqrt(protein.quants.sumsqrs / protein.quants.n - protein.quants.mean^2)
   colnames(protein.quants.stdev) <- paste("x", dd.assays$Assay)
   fwrite(cbind(dd.proteins, protein.quants.stdev), file.path(stats.dir, "protein_quants_stdevs.csv"))
 
@@ -247,10 +252,10 @@ process.quant <- function(input_dir) {
   suppressPackageStartupMessages(require(ggfortify))
 
   # write out pca plot
-  protein.quantspca <- t(protein.quants.mean[complete.cases(protein.quants.mean),])
-  protein.quantspca.var <- rowMeans(protein.quants.stdev[complete.cases(protein.quants.mean),]^2)
+  protein.quants.pca <- t(protein.quants.mean[complete.cases(protein.quants.mean),])
+  protein.quants.pca.var <- rowMeans(protein.quants.stdev[complete.cases(protein.quants.mean),, drop = F]^2)
 
-  pca.assays <- prcomp(protein.quantspca, center = T, scale = protein.quantspca.var)
+  pca.assays <- prcomp(protein.quants.pca, center = T, scale = protein.quants.pca.var)
   dd.pca.assays <- ggplot2::fortify(pca.assays)
   dd.pca.assays <- cbind(dd.pca.assays, dd.assays)
 
@@ -262,27 +267,29 @@ process.quant <- function(input_dir) {
   g <- g + ggrepel::geom_label_repel(ggplot2::aes(label = Assay))
   g <- g + ggplot2::theme(aspect.ratio=1) + ggplot2::coord_equal()
   if (!all(dd.assays$isRef)) g <- g + ggtitle(paste("ref.assays =", paste(dd.assays[isRef == T, Assay], collapse = "; ")))
-  ggplot2::ggsave(file.path(stats.dir, "pca.pdf"), g, width=8, height=8)
+  ggplot2::ggsave(file.path(stats.dir, "pca.pdf"), g, width=8, height=8, limitsize = F)
 
   # write out Rhat
-  protein.quants.rhat <- matrix(NA, nP, nA)
-  for (a in 1:nA) {
-    message("[", paste0(Sys.time(), "]  calculating Rhat for assay ", a, "..."))
+  if (params$quant.nchain > 1) {
+    protein.quants.rhat <- matrix(NA, nP, nA)
+    for (a in 1:nA) {
+      message("[", paste0(Sys.time(), "]  calculating Rhat for assay ", a, "..."))
 
-    # load data
-    mcmc.protein.quants <- vector("list", params$quant.nchain)
-    for (j in 1:params$quant.nchain) {
-      mcmc.protein.quants[[j]] <- readRDS(file.path("quants", paste0(a, ".", j, ".rds")))
-    }
-    mcmc.protein.quants <- coda::as.mcmc.list(mcmc.protein.quants)
+      # load data
+      mcmc.protein.quants <- vector("list", params$quant.nchain)
+      for (j in 1:params$quant.nchain) {
+        mcmc.protein.quants[[j]] <- readRDS(file.path("quants", paste0(a, ".", j, ".rds")))
+      }
+      mcmc.protein.quants <- coda::as.mcmc.list(mcmc.protein.quants)
 
-    # Rhat
-    for (k in 1:ncol(mcmc.protein.quants[[1]])) {
-      protein.quants.rhat[as.integer(sub("^([0-9]+)\\.[0-9]+$", "\\1", colnames(mcmc.protein.quants[[1]])[k])), a] <- coda::gelman.diag(mcmc.protein.quants[, k, drop = F], autoburnin = F)$psrf[1]
+      # Rhat
+      for (k in 1:ncol(mcmc.protein.quants[[1]])) {
+        protein.quants.rhat[as.integer(sub("^([0-9]+)\\.[0-9]+$", "\\1", colnames(mcmc.protein.quants[[1]])[k])), a] <- coda::gelman.diag(mcmc.protein.quants[, k, drop = F], autoburnin = F)$psrf[1]
+      }
     }
+    colnames(protein.quants.rhat) <- dd.assays$Assay
+    fwrite(cbind(dd.proteins, protein.quants.rhat), file.path(stats.dir, "protein_rhats.csv"))
   }
-  colnames(protein.quants.rhat) <- dd.assays$Assay
-  fwrite(cbind(dd.proteins, protein.quants.rhat), file.path(stats.dir, "protein_rhats.csv"))
 
   # create zip file and clean up
   stats.zip <- file.path("..", "..", "..", paste0(stats.dir, ".zip"))
@@ -290,105 +297,4 @@ process.quant <- function(input_dir) {
   zip(stats.zip, stats.dir, flags="-r9Xq")
 
   message(paste0("[", Sys.time(), "] QUANT finished"))
-
-  # write out pca plot without ref assays
-  # if (!all(dd.assays$isRef)) {
-  #   stats.quants.est.assays <- t(stats.quants.est[apply(stats.quants.est, 1, function(x) !any(is.na(x))), !dd.assays$isRef])
-  #   stats.quants.var <- colMeans(t(stats.quants.sd[apply(stats.quants.est, 1, function(x) !any(is.na(x))), !dd.assays$isRef]))^2
-  #
-  #   pca.assays <- prcomp(stats.quants.est.assays, center = T, scale = stats.quants.var)
-  #   dd.pca.assays <- fortify(pca.assays)
-  #   dd.pca.assays <- cbind(dd.pca.assays, dd.assays[isRef == F,])
-  #
-  #   g <- autoplot(pca.assays, data = dd.pca.assays)
-  #   g <- g + theme_bw()
-  #   g <- g + theme(panel.border = element_rect(colour = "black", size = 1),
-  #                  panel.grid.major = element_line(size = 0.5),
-  #                  strip.background = element_blank())
-  #   g <- g + geom_label_repel(ggplot2::aes(label = Assay))
-  #   g <- g + theme(aspect.ratio=1) + coord_equal()
-  #   g <- g + ggtitle(paste("ref.assays =", paste(dd.assays[isRef == T, Assay], collapse = "; ")))
-  #   ggplot2::ggsave(file.path(stats.dir, "pca_noref.pdf"), g, width=8, height=8)
-  # }
-
-  # missing data imputation PCA
-  # stats.quants.est.assays <- t(stats.quants.est)
-  # nb = estim_ncpPCA(stats.quants.est.assays)
-  # res.comp = imputePCA(stats.quants.est.assays, ncp = nb$ncp)
-  # stats.quants.var <- colMeans(t(stats.quants.sd), na.rm = T)^2
-  # res.pca = PCA(res.comp$completeObs, col.w = 1.0 / stats.quants.var, graph = F)
-  # plot(res.pca, habillage = "ind", col.hab = dd.pca.assays$Grr)
-
-  # mcmc.protein.quants (have to split when multiple baselines per protein)
-  #colnames(protein.baselines) <- dd.assays$Assay
-  #dd.baselines <- melt(cbind(data.table(ProteinID = 1:nP), protein.baselines), id.vars = "ProteinID", variable.name = "Assay", value.name = "BaselineID")
-
-  #stats.quants.est <- protein.quants.sum / ifelse(protein.quants.n != 0, protein.quants.n, NA)
-  #colnames(stats.quants.est) <- dd.assays$Assay
-  #dd.stats.quants.est <- merge(melt(cbind(data.table(ProteinID = 1:nP), stats.quants.est), id.vars = "ProteinID", variable.name = "Assay"), dd.baselines)
-  #dd.stats.quants.est <- dcast(dd.stats.quants.est, ProteinID + BaselineID ~ Assay)[!is.na(BaselineID)]
-  #dd.stats.quants.est <- merge(dd.proteins, dd.stats.quants.est, by = "ProteinID")[, !c("batchID", "BaselineID")]
-  #dd.stats.quants.est <- cbind(dd.proteins[, !"batchID"], stats.quants.est)
-  #fwrite(dd.stats.quants.est, file.path(stats.dir, "protein_estimates.csv"))
-
-  #stats.quants.sd <- sqrt((protein.quants.sumsqrs + protein.quants.sum^2 / ifelse(protein.quants.n != 0, protein.quants.n, NA)) / protein.quants.n)
-  #colnames(stats.quants.sd) <- dd.assays$Assay
-  #dd.stats.quants.sd <- merge(melt(cbind(data.table(ProteinID = 1:nP), stats.quants.sd), id.vars = "ProteinID", variable.name = "Assay"), dd.baselines)
-  #dd.stats.quants.sd <- dcast(dd.stats.quants.sd, ProteinID + BaselineID ~ Assay)[!is.na(BaselineID)]
-  #dd.stats.quants.sd <- merge(dd.proteins, dd.stats.quants.sd, by = "ProteinID")[, !c("batchID", "BaselineID")]
-  #dd.stats.quants.sd <- cbind(dd.proteins[, !"batchID"], stats.quants.sd)
-  #fwrite(dd.stats.quants.sd, file.path(stats.dir, "protein_stdevs.csv"))
-
-  # # ploting function for exposures
-  # plot.assays <- function(mcmc.assays)
-  # {
-  #   dd.assays2 <- data.table(t(mcmc.assays))
-  #   dd.assays2$Assay <- dd.assays$Assay
-  #   dd.assays2 <- melt(dd.assays2, variable.name="mcmc", value.name="Exposure", id.vars = c("Assay"))
-  #   dd.assays2 <- dd.assays2[complete.cases(dd.assays2),]
-  #
-  #   # construct metadata
-  #   dd.assays2.meta.func <- function(x) {
-  #     m <- mean(x, na.rm=T)
-  #     if (is.nan(m)) m <- NA
-  #
-  #     data.table(mean = m)
-  #   }
-  #   dd.assays2.meta <- dd.assays2[, as.list(dd.assays2.meta.func(Exposure)), by = list(Assay)]
-  #
-  #   # construct densities
-  #   dd.assays2.density.func <- function(x) {
-  #     if (all(x == 0.0)) {
-  #       data.table()
-  #     }
-  #     else {
-  #       dens <- density(x, n = 4096, na.rm = T)
-  #       data.table(x = dens$x, y = dens$y)
-  #     }
-  #   }
-  #   dd.assays2.density <- dd.assays2[, as.list(dd.assays2.density.func(Exposure)), by = list(Assay)]
-  #
-  #   y_range <- max(dd.assays2.density$y) * 1.35
-  #   x_range <- max(-min(dd.assays2.density$x[dd.assays2.density$y > y_range/100]), max(dd.assays2.density$x[dd.assays2.density$y > y_range/100])) * 1.2
-  #
-  #   g <- ggplot2::ggplot(dd.assays2, ggplot2::aes(x = mean))
-  #   g <- g + theme_bw()
-  #   g <- g + theme(panel.border = element_rect(colour = "black", size = 1),
-  #                  panel.grid.major = element_line(size = 0.5),
-  #                  axis.ticks = element_blank(),
-  #                  axis.text.y = element_blank(),
-  #                  plot.title = element_text(size = 10),
-  #                  strip.background=element_blank())
-  #   g <- g + scale_x_continuous(expand = c(0, 0))
-  #   g <- g + scale_y_continuous(expand = c(0, 0))
-  #   g <- g + facet_grid(Assay ~ .)
-  #   g <- g + coord_cartesian(xlim = c(0, x_range), ylim = c(-0.0, y_range))
-  #   g <- g + xlab(expression('Standard Deviation of Digestion (Log'[2]*' Intensity)'))
-  #   g <- g + ylab("Probability Density")
-  #   g <- g + geom_vline(xintercept = 0,size = 1/2, colour = "darkgrey")
-  #   g <- g + geom_ribbon(data = dd.assays2.density,ggplot2::aes(x = x, ymax = y), ymin = 0,size = 1/2, alpha = 0.3)
-  #   g <- g + geom_line(data = dd.assays2.density, ggplot2::aes(x = x,y = y), size = 1/2)
-  #   g <- g + geom_vline(data = dd.assays2.meta,ggplot2::aes(xintercept = mean), size = 1/2)
-  #   g
-  # }
 }

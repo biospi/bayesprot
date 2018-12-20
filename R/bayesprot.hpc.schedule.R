@@ -75,7 +75,7 @@ setClass("SGE",
 # study.slurm
 # model2.slurm
 # quant.slurm
-# qprot.slurm
+# bmc.slurm
 # de.slurm
 # slurm.sh
 
@@ -108,10 +108,10 @@ setGeneric("quant",
   }
 )
 
-setGeneric("qprot",
+setGeneric("bmc",
   function(object)
   {
-    standardGeneric("qprot")
+    standardGeneric("bmc")
   }
 )
 
@@ -266,13 +266,13 @@ setMethod("quant", signature(object = "SLURM"), function(object)
 )
 
 
-setMethod("qprot", signature(object = "SLURM"), function(object)
+setMethod("bmc", signature(object = "SLURM"), function(object)
   {
-    sink(file.path(object@path,"qprot.slurm"))
+    sink(file.path(object@path,"bmc.slurm"))
 
     cat("#!/bin/bash\n\n")
 
-    cat("#SBATCH --workdir=qprot/results\n")
+    cat("#SBATCH --workdir=bmc/results\n")
     cat("#SBATCH --output=../slurm-%A_%a.out\n")
     cat("#SBATCH --requeue\n")
     cat("#SBATCH --mail-type=FAIL\n\n")
@@ -285,17 +285,17 @@ setMethod("qprot", signature(object = "SLURM"), function(object)
     cat(sprintf("#SBATCH --partition=%s\n",object@longQue))
     cat("#SBATCH --time=14-00:00:00\n\n")
 
-    cat("#SBATCH --job-name=bp.qprot\n")
+    cat("#SBATCH --job-name=bp.bmc\n")
     if (object@email != "UserName@email.com"){
       cat(sprintf("#SBATCH --mail-user=%s\n\n",object@email))
     }
 
     cat(sprintf("#SBATCH --array=1-%d\n",object@nChains))
-    cat("srun Rscript ../../qprot.R $SLURM_ARRAY_TASK_ID\n\n")
+    cat("srun Rscript ../../bmc.R $SLURM_ARRAY_TASK_ID\n\n")
 
     sink()
 
-    #system(paste("chmod u+x",file.path(object@path,"qprot.slurm")))
+    #system(paste("chmod u+x",file.path(object@path,"bmc.slurm")))
   }
 )
 
@@ -344,20 +344,20 @@ setMethod("genSubmit", signature(object = "SLURM"), function(object)
     cat("STUDY=$(sbatch --parsable --dependency=afterok:$MODEL1 study.slurm)\n")
     cat("MODEL2=$(sbatch --parsable --dependency=afterok:$STUDY model2.slurm)\n")
     cat("QUANT=$(sbatch --parsable --dependency=afterok:$MODEL2 quant.slurm)\n")
-    cat("if [ -d \"qprot\" ]; then\n")
-    cat("  QPROT=$(sbatch --parsable --dependency=afterok:$QUANT qprot.slurm)\n")
-    cat("  DE=$(sbatch --parsable --dependency=afterok:$QPROT de.slurm)\n")
+    cat("if [ -d \"bmc\" ]; then\n")
+    cat("  BMC=$(sbatch --parsable --dependency=afterok:$QUANT bmc.slurm)\n")
+    cat("  DE=$(sbatch --parsable --dependency=afterok:$BMC de.slurm)\n")
     cat("fi\n")
     cat("EXITCODE=$?\n\n")
 
     cat("# clean up\n")
     cat("if [[ $EXITCODE != 0 ]]; then\n")
-    cat("  scancel $MODEL1 $STUDY $MODEL2 $QUANT $QPROT $DE\n")
+    cat("  scancel $MODEL1 $STUDY $MODEL2 $QUANT $BMC $DE\n")
     cat("  echo Failed to submit jobs!\n")
     cat("else\n")
     cat("  echo Submitted jobs! To cancel execute $DIR/cancel.sh\n")
     cat("  echo '#!/bin/bash' > $DIR/cancel.sh\n")
-    cat("  echo scancel $MODEL1 $STUDY $MODEL2 $QUANT $QPROT $DE >> $DIR/cancel.sh\n")
+    cat("  echo scancel $MODEL1 $STUDY $MODEL2 $QUANT $BMC $DE >> $DIR/cancel.sh\n")
     cat("  chmod u+x $DIR/cancel.sh\n")
     cat("fi\n\n")
 
@@ -520,12 +520,12 @@ setMethod("quant", signature(object = "PBS"), function(object)
 )
 
 
-setMethod("qprot", signature(object = "PBS"), function(object)
+setMethod("bmc", signature(object = "PBS"), function(object)
   {
-    sink(file.path(object@path,"qprot.pbs"))
+    sink(file.path(object@path,"bmc.pbs"))
     cat("#!/bin/bash\n\n")
 
-    cat("#PBS -o qprot\n")
+    cat("#PBS -o bmc\n")
     cat("#PBS -j oe\n")
     cat("#PBS -r y\n\n")
 
@@ -535,21 +535,21 @@ setMethod("qprot", signature(object = "PBS"), function(object)
     cat(sprintf("#PBS -q %s\n",object@que))
     cat(sprintf("#PBS -l walltime=%s\n\n",object@wallTime))
 
-    cat("#PBS -N bp.qprot\n")
+    cat("#PBS -N bp.bmc\n")
     if (object@email != "UserName@email.com"){
       cat(sprintf("#PBS -M %s\n\n",object@email))
     }
 
     cat(sprintf("#PBS -t 1-%d\n",object@nChains))
-    cat("cd $PBS_O_WORKDIR/qprot/results\n")
-    cat("Rscript ../../qprot.R $PBS_ARRAYID\n\n")
+    cat("cd $PBS_O_WORKDIR/bmc/results\n")
+    cat("Rscript ../../bmc.R $PBS_ARRAYID\n\n")
 
     cat("EXITCODE=$?\n")
     cat("qstat -f $PBS_JOBID\n")
     cat("exit $EXITCODE\n\n")
     sink()
 
-    #system(paste("chmod u+x",file.path(object@path,"qprot.pbs")))
+    #system(paste("chmod u+x",file.path(object@path,"bmc.pbs")))
   }
 )
 
@@ -646,18 +646,18 @@ setMethod("genSubmit", signature(object = "PBS"), function(object)
     cat("pushd $DIR > /dev/null\n\n")
 
     cat("# job chain\n")
-    cat("QPROT=$(qsub qprot.pbs)\n")
-    cat("DE=$(qsub -W depend=afterokarray:$QPROT de.pbs)\n")
+    cat("BMC=$(qsub bmc.pbs)\n")
+    cat("DE=$(qsub -W depend=afterokarray:$BMC de.pbs)\n")
     cat("EXITCODE=$?\n\n")
 
     cat("# clean up\n")
     cat("if [[ $EXITCODE != 0 ]]; then\n")
-    cat("  qdel $QPROT $DE\n")
+    cat("  qdel $BMC $DE\n")
     cat("  echo Failed to submit jobs!\n")
     cat("else\n")
     cat("  echo Submitted jobs! To cancel execute $DIR/cancel.sh\n")
     cat("  echo '#!/bin/bash' > $DIR/cancel.sh\n")
-    cat("  echo qdel $QPROT $DE >> $DIR/cancel.sh\n")
+    cat("  echo qdel $BMC $DE >> $DIR/cancel.sh\n")
     cat("  chmod u+x $DIR/cancel.sh\n")
     cat("fi\n\n")
 
@@ -671,3 +671,4 @@ setMethod("genSubmit", signature(object = "PBS"), function(object)
   }
 )
 
+QPROo
