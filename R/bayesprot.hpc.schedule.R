@@ -670,5 +670,3 @@ setMethod("genSubmit", signature(object = "PBS"), function(object)
     system(paste("chmod u+x",file.path(object@path,"_pbs3.sh")))
   }
 )
-
-QPROo
