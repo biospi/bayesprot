@@ -44,7 +44,7 @@
 #' @return Lots of interesting stuff.
 #' @export
 
-bayesprot.hpc <- function(dd, id = "bayesprot", plots = F, missing = "censored", ref.assays = levels(dd$Assay), digests = levels(dd$Assay), samples = levels(dd$Assay), model0.minpeptides = 2,
+bayesprot.hpc <- function(dd, id = "bayesprot", hpc.system = "SLURM", plots = F, missing = "censored", ref.assays = levels(dd$Assay), digests = levels(dd$Assay), samples = levels(dd$Assay), model0.minpeptides = 2,
                           de.conditions = NULL, de.paired = F, de.truth = NULL, de.mcmc = F, prior.scale = 1, hpc.nthread = 14,
                           model0.nsample = 1024, model0.nwarmup = 256, model0.thin = 1, model0.nchain = 1, model0.seed = 0,
                           model.nsample = 1024, model.nwarmup = 256, model.thin = 1, model.nchain = 1, model.seed = 0,
@@ -54,6 +54,8 @@ bayesprot.hpc <- function(dd, id = "bayesprot", plots = F, missing = "censored",
   message("This program comes with ABSOLUTELY NO WARRANTY.")
   message("This is free software, and you are welcome to redistribute it under certain conditions.")
   message("---")
+
+  params <- list(...)
 
   # setup input
   tmp.dir <- tempfile("bayesprot.")
