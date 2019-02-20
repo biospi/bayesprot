@@ -162,7 +162,7 @@ process.input <- function(dd,
   if (plots) {
     dir.create(file.path(id, "plots", "results"), recursive = T)
   }
-  for (file in list.files(system.file("hpc", package = "bayesprot"))) {
+  for (file in list.files(system.file("hpc", package = "bayesprot"),pattern="*.R")) {
     file.copy(file.path(system.file("hpc", package = "bayesprot"), file), id, recursive = T)
   }
 
