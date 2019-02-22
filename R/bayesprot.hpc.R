@@ -30,6 +30,7 @@
 #' @param qprot.nwarmup .
 #' @param qprot.seed .
 #' @param ... any other HPC backend parameters
+#' @param hpc.system .
 #' @param hpc.nthread .
 #' @param hpc.low_cpu_num .
 #' @param hpc.nChains .
@@ -117,6 +118,7 @@ bayesprot.hpc <- function(dd, id = "bayesprot", hpc.system = "SLURM", plots = F,
   #message(paste("nChains",nChains,"norm_chain",norm_chains,"model_chains",model_chains,"cpu_num",cpu_num,"node",node,"mem",
   #              mem,"himem",himem,"long_que",long_que,"short_que",short_que,"total_jobs",total_jobs,"low_cpu_num",low_cpu_num))
 
+
   process.input(dd, file.path(tmp.dir, id), plots, missing, ref.assays, digests, samples, model0.minpeptides,
                 de.conditions, de.paired = de.paired, de.truth = de.truth, de.mcmc = de.mcmc, prior.scale = prior.scale, nthread = params$hpc.nthread,
                 model0.nsample = model0.nsample, model0.nwarmup = model0.nwarmup, model0.thin = model0.thin, model0.nchain = model0.nchain, model0.seed = model0.seed,
@@ -131,8 +133,8 @@ bayesprot.hpc <- function(dd, id = "bayesprot", hpc.system = "SLURM", plots = F,
   model(clusterHPC)
   # output:
   output(clusterHPC)
-  # plots:
-  plots(clusterHPC)
+  # plotsHPC:
+  plotsHPC(clusterHPC)
   # Genorate HPC job file:
   genSubmit(clusterHPC)
 

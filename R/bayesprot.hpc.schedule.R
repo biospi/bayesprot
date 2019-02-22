@@ -115,10 +115,10 @@ setGeneric("output",
   }
 )
 
-setGeneric("plots",
+setGeneric("plotsHPC",
   function(object)
   {
-    standardGeneric("plots")
+    standardGeneric("plotsHPC")
   }
 )
 
@@ -266,7 +266,7 @@ setMethod("output", signature(object = "SLURM"), function(object)
 )
 
 
-setMethod("plots", signature(object = "SLURM"), function(object)
+setMethod("plotsHPC", signature(object = "SLURM"), function(object)
   {
     sink(file.path(object@path,"plots.slurm"))
 
@@ -488,7 +488,7 @@ setMethod("output", signature(object = "PBS"), function(object)
 )
 
 
-setMethod("plots", signature(object = "PBS"), function(object)
+setMethod("plotsHPC", signature(object = "PBS"), function(object)
   {
     sink(file.path(object@path,"plots.pbs"))
     cat("#!/bin/bash\n\n")
