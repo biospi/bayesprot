@@ -479,7 +479,11 @@ process_model2 <- function(
       for (i in 1:length(DT.peptide.stdevs)) DT.peptide.stdevs[[i]] <- DT.peptide.stdevs[[i]]$DT
       DT.peptide.stdevs <- rbindlist(DT.peptide.stdevs)
 
-      DT.peptide.stdevs <- DT.peptide.stdevs[, .(prior = any(prior), est = median(value), SE = mad(value)), by = .(ProteinID, PeptideID)]
+      if (control$peptide.model == "single"){
+        DT.peptide.stdevs <- DT.peptide.stdevs[, .(prior = any(prior), est = median(value), SE = mad(value)), by = .(ProteinID)]
+      } else {
+        DT.peptide.stdevs <- DT.peptide.stdevs[, .(prior = any(prior), est = median(value), SE = mad(value)), by = .(ProteinID, PeptideID)]
+      }
       fst::write.fst(DT.peptide.stdevs, file.path(fit, "model2", "peptide.stdevs.summary.fst"))
 
       if (control$peptide.model != "single") {
@@ -835,8 +839,12 @@ execute_model <- function(
 
     if (!is.null(output$DT.peptide.stdevs) && nrow(output$DT.peptide.stdevs) > 0) {
       output$DT.peptide.stdevs[, ProteinID := factor(as.character(ProteinID))]
-      output$DT.peptide.stdevs[, PeptideID := factor(as.character(PeptideID))]
-      setorder(output$DT.peptide.stdevs, ProteinID, PeptideID, chainID, mcmcID)
+      if (control$peptide.model == "single") {
+        setorder(output$DT.peptide.stdevs, ProteinID, chainID, mcmcID)
+      } else {
+        output$DT.peptide.stdevs[, PeptideID := factor(as.character(PeptideID))]
+        setorder(output$DT.peptide.stdevs, ProteinID, PeptideID, chainID, mcmcID)
+      }
       fst::write.fst(output$DT.peptide.stdevs, file.path(path.output, file.path(paste0("peptide.stdevs.", stage), paste0(chainID, ".fst"))))
       output$DT.peptide.stdevs <- NULL
     }
