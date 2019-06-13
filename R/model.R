@@ -517,13 +517,17 @@ process_model2 <- function(
     for (i in 1:length(DT.feature.stdevs)) DT.feature.stdevs[[i]] <- DT.feature.stdevs[[i]]$DT
     DT.feature.stdevs <- rbindlist(DT.feature.stdevs)
 
-    DT.feature.stdevs <- DT.feature.stdevs[, .(prior = any(prior), est = median(value), SE = mad(value)), by = .(ProteinID, PeptideID, FeatureID)]
+    if (control$feature.model != "single") {
+      DT.feature.stdevs <- DT.feature.stdevs[, .(prior = any(prior), est = median(value), SE = mad(value)), by = .(ProteinID, PeptideID, FeatureID)]
+    } else {
+      DT.feature.stdevs <- DT.feature.stdevs[, .(prior = any(prior), est = median(value), SE = mad(value)), by = .(ProteinID)]
+    }
     fst::write.fst(DT.feature.stdevs, file.path(fit, "model2", "feature.stdevs.summary.fst"))
 
     if (control$feature.model != "single") {
       DT.feature.stdevs <- merge(DT.features, DT.feature.stdevs, by = "FeatureID")
+      DT.feature.stdevs <- merge(DT.peptides[, .(PeptideID, Peptide)], DT.feature.stdevs, by = "PeptideID")
     }
-    DT.feature.stdevs <- merge(DT.peptides[, .(PeptideID, Peptide)], DT.feature.stdevs, by = "PeptideID")
     DT.feature.stdevs <- merge(DT.proteins[, .(ProteinID, Protein, ProteinInfo)], DT.feature.stdevs, by = "ProteinID")
     fwrite(DT.feature.stdevs, file.path(fit, "output", "feature_log2SDs.csv"))
     rm(DT.feature.stdevs)
@@ -778,14 +782,18 @@ execute_model <- function(
           output$DT.feature.stdevs[, FeatureID := factor(sub("^FeatureID([0-9]+)\\.AssayID$", "\\1", FeatureID))]
           setcolorder(output$DT.feature.stdevs, c("value", "mcmcID"))
         }
-        output$DT.feature.stdevs <- merge(output$DT.feature.stdevs, unique(DT[, .(FeatureID, PeptideID, ProteinID)]), by = "FeatureID")
+        if (control$feature.model != "single") {
+          output$DT.feature.stdevs <- merge(output$DT.feature.stdevs, unique(DT[, .(FeatureID, PeptideID, ProteinID)]), by = "FeatureID")
+        } else {
+          output$DT.feature.stdevs[, ProteinID := factor(levels(DT$ProteinID))]
+        }
         output$DT.feature.stdevs[, chainID := factor(chainID)]
         output$DT.feature.stdevs[, prior := nlevels(DT$FeatureID) <= control$feature.prior]
         output$DT.feature.stdevs[, value := sqrt(value) / log(2)]
         if (control$feature.model != "single") {
           setcolorder(output$DT.feature.stdevs, c("ProteinID", "PeptideID", "FeatureID", "prior", "chainID", "mcmcID"))
         } else {
-          setcolorder(output$DT.feature.stdevs, c("ProteinID", "PeptideID", "prior", "chainID", "mcmcID"))
+          setcolorder(output$DT.feature.stdevs, c("ProteinID", "prior", "chainID", "mcmcID"))
         }
 
         # write out if large enough
@@ -851,9 +859,13 @@ execute_model <- function(
 
     if (!is.null(output$DT.feature.stdevs) && nrow(output$DT.feature.stdevs) > 0) {
       output$DT.feature.stdevs[, ProteinID := factor(as.character(ProteinID))]
-      output$DT.feature.stdevs[, PeptideID := factor(as.character(PeptideID))]
-      output$DT.feature.stdevs[, FeatureID := factor(as.character(FeatureID))]
-      setorder(output$DT.feature.stdevs, ProteinID, PeptideID, FeatureID, chainID, mcmcID)
+      if (control$feature.model != "single") {
+        output$DT.feature.stdevs[, PeptideID := factor(as.character(PeptideID))]
+        output$DT.feature.stdevs[, FeatureID := factor(as.character(FeatureID))]
+        setorder(output$DT.feature.stdevs, ProteinID, PeptideID, FeatureID, chainID, mcmcID)
+      } else {
+        setorder(output$DT.feature.stdevs, ProteinID, chainID, mcmcID)
+      }
       fst::write.fst(output$DT.feature.stdevs, file.path(path.output, file.path(paste0("feature.stdevs.", stage), paste0(chainID, ".fst"))))
       output$DT.feature.stdevs <- NULL
     }
